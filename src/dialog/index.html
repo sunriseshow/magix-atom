@@ -1,0 +1,20 @@
+
+<div class="atom-dialog <%= elCls %>" style="width:<%= width %>;height:<%= height %>;">
+  <% if(title){ %>
+    <div class="atom-dialog-title"><%= title %></div>
+  <% } %>
+
+  <% if(content){ %>
+    <div class="atom-dialog-content"><%= content %></div>
+  <% } %>
+
+  <% if(view){ %>
+    <div class="atom-dialog-content"><%= view %></div>
+  <% } %>
+
+
+  <% if(closable){ %>
+    <div class="atom-dialog-close" mx-click="close()"></div>
+  <% } %>
+
+</div>

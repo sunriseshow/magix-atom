@@ -1,0 +1,26 @@
+{
+  "name": "mx-atom-mask",
+  "version": "0.0.1",
+  "description": "遮罩",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "rules": ["mx-atom-zepto","mx-atom-magix"],
+  "aim": "atom/mask",
+  "dependencies": {
+    "mx-atom-zepto": "^0.0.1",
+    "mx-atom-magix": "^0.0.1"
+  },
+  "keywords": [
+    "magix",
+    "sync",
+    "local"
+  ],
+  "author": "purplebamboo <weikang.zhuwk@alibaba-inc.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  }
+}

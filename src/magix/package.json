@@ -1,0 +1,23 @@
+{
+  "name": "mx-atom-magix",
+  "version": "0.0.2",
+  "description": "atom使用的magix精简版本",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "aim": "atom/magix",
+  "dependencies": {
+  },
+  "keywords": [
+    "magix",
+    "sync",
+    "local"
+  ],
+  "author": "purplebamboo <weikang.zhuwk@alibaba-inc.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  }
+}

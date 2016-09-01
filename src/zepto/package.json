@@ -1,0 +1,16 @@
+{
+  "name": "mx-atom-zepto",
+  "version": "0.0.1",
+  "description": "atom使用的zepto版本,增加了模板扩展",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "aim": "atom/zepto",
+  "author": "purplebamboo <weikang.zhuwk@alibaba-inc.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  }
+}

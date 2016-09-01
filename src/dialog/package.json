@@ -1,0 +1,27 @@
+{
+  "name": "mx-atom-dialog",
+  "version": "0.0.2",
+  "description": "对话框",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "aim": "atom/dialog",
+  "rules": ["^mx-"],
+  "dependencies": {
+    "mx-atom-zepto": "^0.0.1",
+    "mx-atom-magix": "^0.0.1",
+    "mx-atom-mask": "^0.0.1"
+  },
+  "keywords": [
+    "magix",
+    "sync",
+    "local"
+  ],
+  "author": "purplebamboo <weikang.zhuwk@alibaba-inc.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  }
+}
