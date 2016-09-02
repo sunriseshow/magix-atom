@@ -1,8 +1,45 @@
+/*3.1.4*/
+/*modules:core,autoEndUpdate,linkage,base,style,viewInit,resource,nodeAttachVframe,mxInit,magix,event,vframe,body,view*/
 /*
     author:xinglie.lkf@taobao.com
  */
 define('atom/magix/index', ['atom/zepto/index'], function(require) {
     var $ = require('atom/zepto/index');
+    var G_Require = function(name, fn) {
+        if (name) {
+            if (window.seajs) {
+                seajs.use(name, fn);
+            } else {
+                var a = [];
+                if (!G_IsArray(name)) name = [name];
+                for (var i = 0; i < name.length; i++) {
+                    a.push(require(name[i]));
+                }
+                if (fn) fn.apply(G_NULL, a);
+            }
+        } else {
+            fn();
+        }
+        // if (name) {
+        //     var a = [];
+        //     if (!G_IsArray(name)) name = [name];
+        //     for (var i = 0; i < name.length; i++) {
+        //         a.push(require(name[i]));
+        //     }
+        //     if (fn) fn.apply(G_NULL, a);
+        // }
+        /*
+            fn回调一定要确保是异步的，原因：所有js都放在页面上，回调是同步的，会导致mountZone中循环时，渲染一个vframe触发一次vframe上的created事件。
+            2016.05.02 该问题已修复，详见mountZone中的hold fire event
+
+            magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
+         */
+        // if (name) {
+        //     seajs.use(name, fn);
+        // } else if (fn) {
+        //     fn();
+        // }
+    };
     var T = function() {};
     var G_Extend = function(ctor, base, props, statics, cProto) {
         //bProto.constructor = base;
@@ -14,47 +51,17 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         ctor[G_PROTOTYPE] = cProto;
         return ctor;
     };
-    var G_Require = function(name, fn) {
-        // if (name) {
-        //     var a = [];
-        //     if (!G_IsArray(name)) name = [name];
-        //     for (var i = 0; i < name.length; i++) {
-        //         a.push(require(name[i]));
-        //     }
-        //     if (fn) fn.apply(G_NULL, a);
-        // }
-        /*
-            fn回调一定要确保是异步的，原因：所有js都放在页面上，回调是同步的，会导致mountZone中循环时，渲染一个vframe触发一次vframe上的created事件。
-            magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
-         */
-        if (name) {
-            seajs.use(name, fn);
-            // var a = [];
-            // if (!G_IsArray(name)) name = [name];
-            // for (var i = 0; i < name.length; i++) {
-            //     a.push(require(name[i]));
-            // }
-            // if (fn) fn.apply(G_NULL, a);
-        } else if (fn) {
-            setTimeout(fn, 0);
-        }
-    };
     var G_IsObject = $.isPlainObject;
     var G_IsArray = $.isArray;
     var G_HTML = function(node, html) {
-        if (1 in arguments) {
-            $(node).html(html);
-        } else {
-            html = $(node).html();
-        }
-        return html;
+        $(node).html(html);
     };
 
     var View_ApplyStyle = function(key, css, node, sheet) {
         if (css && !View_ApplyStyle[key]) {
             View_ApplyStyle[key] = 1;
-            node = $('#' + MxStyleGlobalId);
-            if (node.size()) {
+            node = $(G_HashKey + MxStyleGlobalId);
+            if (node.length) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
                     sheet.cssText += css;
@@ -67,11 +74,6 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         }
     };
 
-    /*
-    源码级模块定制，更利于取舍功能
-    固定的模块有magix,event,body,vframe,view
-    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgerouter,tiprouter,simplerouter
- */
     var G_COUNTER = 0;
     var G_EMPTY = '';
     var G_EMPTY_ARRAY = [];
@@ -81,6 +83,7 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
     var G_NULL = null;
     var G_WINDOW = window;
     var G_DOCUMENT = document;
+    var G_HashKey = '#';
     var G_DOCBODY; //initilize at vframe_root
     /*
         关于spliter
@@ -102,8 +105,14 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
 
     var MxStyleGlobalId = G_Id();
 
+
+    var MxGlobalView = G_Id();
+
     var Magix_Cfg = {
         rootId: G_Id(),
+
+        defaultView: MxGlobalView,
+
         error: function(e) {
             throw e;
         }
@@ -156,11 +165,11 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
      * Magix.Cache 类
      * @name Cache
      * @constructor
-     * @param {Integer} max 最大值
-     * @param {Integer} buffer 缓冲区大小
-     * @param {Function} remove 当缓存的元素被删除时调用
+     * @param {Integer} [max] 缓存最大值，默认20
+     * @param {Integer} [buffer] 缓冲区大小，默认5
+     * @param {Function} [remove] 当缓存的元素被删除时调用
      * @example
-     * var c=Magix.cache(5,2);//创建一个可缓存5个，且缓存区为2个的缓存对象
+     * var c = new Magix.cache(5,2);//创建一个可缓存5个，且缓存区为2个的缓存对象
      * c.set('key1',{});//缓存
      * c.get('key1');//获取
      * c.del('key1');//删除
@@ -321,8 +330,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
      * @param  {String} path 路径字符串
      * @return {Object} 解析后的对象
      * @example
-     * var obj=Magix.parseUri('/xxx/?a=b&c=d');
-     * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
+     * var obj = Magix.parseUri('/xxx/?a=b&c=d');
+     * // obj = {path:'/xxx/',params:{a:'b',c:'d'}}
      */
     var G_ParseUri = function(path) {
         //把形如 /xxx/?a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
@@ -365,21 +374,21 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
      * @param {Object} [keo] 保留空白值的对象
      * @return {String} 字符串路径
      * @example
-     * var str=Magix.toUri('/xxx/',{a:'b',c:'d'});
-     * //str==/xxx/?a=b&c=d
+     * var str = Magix.toUri('/xxx/',{a:'b',c:'d'});
+     * // str == /xxx/?a=b&c=d
      *
-     * var str=Magix.toUri('/xxx/',{a:'',c:2});
+     * var str = Magix.toUri('/xxx/',{a:'',c:2});
      *
-     * //str==/xxx/?a=&c=2
+     * // str == /xxx/?a=&c=2
      *
-     * var str=Magix.toUri('/xxx/',{a:'',c:2},{c:1});
+     * var str = Magix.toUri('/xxx/',{a:'',c:2},{c:1});
      *
-     * //str==/xxx/?c=2
-     * var str=Magix.toUri('/xxx/',{a:'',c:2},{a:1,c:1});
+     * // str == /xxx/?c=2
+     * var str = Magix.toUri('/xxx/',{a:'',c:2},{a:1,c:1});
      *
-     * //str==/xxx/?a=&c=2
+     * // str == /xxx/?a=&c=2
      */
-    var G_ToUri = function(path, params, keo) { //上个方法的逆向
+    var G_ToUri = function(path, params, keo) {
         var arr = [];
         var v, p, f;
         for (p in params) {
@@ -406,6 +415,16 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         return map;
     };
 
+    var G_Keys = Object.keys || function(obj, keys, p) {
+        keys = [];
+        for (p in obj) {
+            if (G_Has(obj, p)) {
+                keys.push(p);
+            }
+        }
+        return keys;
+    };
+
     /**
      * Magix对象，提供常用方法
      * @name Magix
@@ -417,17 +436,35 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          */
         /**
          * 设置或获取配置信息
-         * @function
-         * @param {Object} [cfg] 配置信息对象,更多信息请参考Magix.boot方法
-         * @return {Object} 配置信息对象
+         * @param  {Object} cfg 初始化配置参数对象
+         * @param {String} cfg.defaultView 默认加载的view
+         * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
+         * @param {String} cfg.unfoundView 404时加载的view
+         * @param {Object} cfg.routes path与view映射关系表
+         * @param {String} cfg.rootId 根view的id
+         * @param {Array} cfg.exts 需要加载的扩展
+         * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
          * @example
          * Magix.config({
-         *      rootId:'J_app_main'
+         *      rootId:'J_app_main',
+         *      defaultView:'app/views/layouts/default',//默认加载的view
+         *      defaultPath:'/home',
+         *      routes:{
+         *          "/home":"app/views/layouts/default"
+         *      }
          * });
          *
-         * var config=Magix.config();
          *
-         * S.log(config.rootId);
+         * var config = Magix.config();
+         *
+         * console.log(config.rootId);
+         *
+         * // 可以多次调用该方法，除内置的配置项外，您也可以缓存一些数据，如
+         * Magix.config({
+         *     user:'彳刂'
+         * });
+         *
+         * console.log(Magix.config('user'));
          */
         config: function(cfg, r) {
             r = Magix_Cfg;
@@ -440,26 +477,17 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             }
             return r;
         },
+
         /**
          * 应用初始化入口
-         * @param  {Object} cfg 初始化配置参数对象
-         * @param {String} cfg.defaultView 默认加载的view
-         * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
-         * @param {String} cfg.unfoundView 404时加载的view
-         * @param {Object} cfg.routes pathname与view映射关系表
-         * @param {String} cfg.rootId 根view的id
-         * @param {Array} cfg.exts 需要加载的扩展
-         * @param {Boolean} cfg.coded 是否对地址栏中的参数进行编码或解码，默认true
-         * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
+         * @function
+         * @param {Object} [cfg] 配置信息对象,更多信息请参考Magix.config方法
+         * @return {Object} 配置信息对象
          * @example
          * Magix.boot({
-         *      rootId:'J_app_main',】
-         *      defaultView:'app/views/layouts/default',//默认加载的view
-         *      defaultPath:'/home',
-         *      routes:{
-         *          "/home":"app/views/layouts/default"
-         *      }
+         *      rootId:'J_app_main'
          * });
+         *
          */
 
         boot: function(cfg) {
@@ -472,23 +500,68 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         /**
          * 把列表转化成hash对象
          * @param  {Array} list 源数组
-         * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
+         * @param  {String} [key]  以数组中对象的哪个key的value做为hash的key
          * @return {Object}
          * @example
-         * var map=Magix.toMap([1,2,3,5,6]);
-         * //=> {1:1,2:1,3:1,4:1,5:1,6:1}
+         * var map = Magix.toMap([1,2,3,5,6]);
+         * // => {1:1,2:1,3:1,4:1,5:1,6:1}
          *
-         * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
-         * //=>{20:{id:20},30:{id:30},40:{id:40}}
+         * var map = Magix.toMap([{id:20},{id:30},{id:40}],'id');
+         * // =>{20:{id:20},30:{id:30},40:{id:40}}
+         *
+         * console.log(map['30']);//=> {id:30}
+         * // 转成对象后不需要每次都遍历数组查询
          */
         toMap: G_ToMap,
         /**
          * 以try cache方式执行方法，忽略掉任何异常
          * @function
          * @param  {Array} fns     函数数组
-         * @param  {Array} args    参数数组
-         * @param  {Object} context 在待执行的方法内部，this的指向
+         * @param  {Array} [args]    参数数组
+         * @param  {Object} [context] 在待执行的方法内部，this的指向
          * @return {Object} 返回执行的最后一个方法的返回值
+         * @example
+         * var result = Magix.toTry(function(){
+         *     return true
+         * });
+         *
+         * // result == true
+         *
+         * var result = Magix.toTry(function(){
+         *     throw new Error('test');
+         * });
+         *
+         * // result == undefined
+         *
+         * var result = Magix.toTry([function(){
+         *     throw new Error('test');
+         * },function(){
+         *     return true;
+         * }]);
+         *
+         * // result == true
+         *
+         * //异常的方法执行时，可以通过Magix.config中的error来捕获，如
+         *
+         * Magix.config({
+         *     error:function(e){
+         *         console.log(e);//在这里可以进行错误上报
+         *     }
+         * });
+         *
+         * var result = Magix.toTry(function(a1,a2){
+         *     return a1 + a2;
+         * },[1,2]);
+         *
+         * // result == 3
+         * var o={
+         *     title:'test'
+         * };
+         * var result = Magix.toTry(function(){
+         *     return this.title;
+         * },null,o);
+         *
+         * // result == 'test'
          */
         toTry: G_ToTry,
         /**
@@ -499,19 +572,19 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * @param {Object} [keo] 保留空白值的对象
          * @return {String} 字符串路径
          * @example
-         * var str=Magix.toUrl('/xxx/',{a:'b',c:'d'});
-         * //str==/xxx/?a=b&c=d
+         * var str = Magix.toUrl('/xxx/',{a:'b',c:'d'});
+         * // str == /xxx/?a=b&c=d
          *
-         * var str=Magix.toUrl('/xxx/',{a:'',c:2});
+         * var str = Magix.toUrl('/xxx/',{a:'',c:2});
          *
-         * //str==/xxx/?a=&c=2
+         * // str==/xxx/?a=&c=2
          *
-         * var str=Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
+         * var str = Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
          *
-         * //str==/xxx/?c=2
-         * var str=Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
+         * // str == /xxx/?c=2
+         * var str = Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
          *
-         * //str==/xxx/?a=&c=2
+         * // str == /xxx/?a=&c=2
          */
         toUrl: G_ToUri,
         /**
@@ -520,8 +593,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * @param  {String} path 路径字符串
          * @return {Object} 解析后的对象
          * @example
-         * var obj=Magix.parseUrl('/xxx/?a=b&c=d');
-         * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
+         * var obj = Magix.parseUrl('/xxx/?a=b&c=d');
+         * // obj = {path:'/xxx/',params:{a:'b',c:'d'}}
          */
         parseUrl: G_ParseUri,
         /*
@@ -543,15 +616,15 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * @param  {Object} aim    要mix的目标对象
          * @param  {Object} src    mix的来源对象
          * @example
-         *   var o1={
-         *       a:10
-         *   };
-         *   var o2={
-         *       b:20,
-         *       c:30
-         *   };
+         * var o1={
+         *     a:10
+         * };
+         * var o2={
+         *     b:20,
+         *     c:30
+         * };
          *
-         *   Magix.mix(o1,o2);//{a:10,b:20,c:30}
+         * Magix.mix(o1,o2);//{a:10,b:20,c:30}
          *
          *
          * @return {Object}
@@ -563,14 +636,14 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * @param  {Object}  owner 检测对象
          * @param  {String}  prop  属性
          * @example
-         *   var obj={
-         *       key1:undefined,
-         *       key2:0
-         *   }
+         * var obj={
+         *     key1:undefined,
+         *     key2:0
+         * }
          *
-         *   Magix.has(obj,'key1');//true
-         *   Magix.has(obj,'key2');//true
-         *   Magix.has(obj,'key3');//false
+         * Magix.has(obj,'key1');//true
+         * Magix.has(obj,'key2');//true
+         * Magix.has(obj,'key3');//false
          *
          *
          * @return {Boolean} 是否拥有prop属性
@@ -578,10 +651,44 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         has: G_Has,
 
         /**
+         * 获取对象的keys
+         * @type {Array}
+         * @beta
+         * @module linkage|router
+         * @example
+         * var o = {
+         *     a:1,
+         *     b:2,
+         *     test:3
+         * };
+         * var keys = Magix.keys(o);
+         *
+         * // keys == ['a','b','test']
+         * @return {Array[string]}
+         */
+        keys: G_Keys,
+
+        /**
          * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
          * @function
          * @param {String|HTMLElement} node节点或节点id
          * @param {String|HTMLElement} container 容器
+         * @example
+         * var root = $('html');
+         * var body = $('body');
+         *
+         * var r = Magix.inside(body[0],root[0]);
+         *
+         * // r == true
+         *
+         * var r = Magix.inside(root[0],body[0]);
+         *
+         * // r == false
+         *
+         * var r = Magix.inside(root[0],[0]);
+         *
+         * // r == true
+         *
          * @return {Boolean}
          */
         inside: G_NodeIn,
@@ -589,13 +696,29 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * document.getElementById的简写
          * @param {String} id
          * @return {HTMLElement|Null}
+         * @example
+         * // html
+         * // &lt;div id="root"&gt;&lt;/div&gt;
+         *
+         * var node = Magix.node('root');
+         *
+         * // node => div[id='root']
+         *
+         * // node是document.getElementById的简写
          */
         node: G_GetById,
 
         /**
          * 应用样式
+         * @beta
+         * @module style
          * @param {String} prefix 样式的名称前缀
          * @param {String} css 样式字符串
+         * @example
+         * // 该方法配合magix-combine工具使用
+         * // 更多信息可参考magix-combine工具：https://github.com/thx/magix-combine
+         * // 样式问题可查阅这里：https://github.com/thx/magix-combine/issues/6
+         *
          */
         applyStyle: View_ApplyStyle,
 
@@ -604,6 +727,10 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * @function
          * @param {String} [prefix] 前缀
          * @return {String}
+         * @example
+         *
+         * var id = Magix.guid('mx-');
+         * // id maybe mx-7
          */
         guid: G_Id,
         Cache: G_Cache
@@ -622,8 +749,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * 触发事件
          * @param {String} name 事件名称
          * @param {Object} data 事件对象
-         * @param {Boolean} remove 事件触发完成后是否移除这个事件的所有监听
-         * @param {Boolean} lastToFirst 是否从后向前触发事件的监听列表
+         * @param {Boolean} [remove] 事件触发完成后是否移除这个事件的所有监听
+         * @param {Boolean} [lastToFirst] 是否从后向前触发事件的监听列表
          */
         fire: function(name, data, remove, lastToFirst) {
             var key = G_SPLITER + name,
@@ -653,21 +780,19 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         /**
          * 绑定事件
          * @param {String} name 事件名称
-         * @param {Function} fn 事件回调
+         * @param {Function} fn 事件处理函数
          * @example
-         *  var T=Magix.mix({},Event);
-         *  T.on('done',function(e){
-         *      alert(1);
-         *  });
-         *  T.on('done',function(e){
-         *      alert(2);
-         *      T.off('done',arguments.callee);
-         *  });
+         * var T = Magix.mix({},Event);
+         * T.on('done',function(e){
+         *     alert(1);
+         * });
+         * T.on('done',function(e){
+         *     alert(2);
+         *     T.off('done',arguments.callee);
+         * });
 
-         *  T.fire('done',{data:'test'});
-         *  T.fire('done',{data:'test2'});
-
-         *  //!!不需要insert,场景不大，目前发现的主要在Router的changed事件，比如外部监听这种情况下写在插件里可以提前绑定，因为插件先加载。
+         * T.fire('done',{data:'test'});
+         * T.fire('done',{data:'test2'});
          */
         on: function(name, fn) {
             var me = this;
@@ -680,7 +805,7 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         /**
          * 解除事件绑定
          * @param {String} name 事件名称
-         * @param {Function} fn 事件回调
+         * @param {Function} [fn] 事件处理函数
          */
         off: function(name, fn) {
             var key = G_SPLITER + name,
@@ -705,16 +830,19 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         }
     };
     Magix.Event = Event;
-
+    var Router_Edge;
 
 
     var Vframe_RootVframe;
     var Vframe_GlobalAlter;
 
+    var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
+    var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
+    var Vframe_DataParamsNumReg = /^[\d\.]+$/;
+
+
     var Vframe_NotifyCreated = function(vframe, mId, p) {
         if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
-            if(vframe.id='mx_1'){
-            }
             if (!vframe.$cr) { //childrenCreated
                 vframe.$cr = 1; //childrenCreated
                 vframe.$ca = 0; //childrenAlter
@@ -775,6 +903,21 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             Vframe.fire('add', {
                 vframe: vf
             });
+
+            id = G_GetById(id);
+            if (id) id.vframe = vf;
+
+        }
+    };
+
+    var Vframe_RunInvokes = function(vf, list, o) {
+        list = vf.$il; //invokeList
+        while (list.length) {
+            o = list.shift();
+            if (!o.r) { //remove
+                vf.invoke(o.n, o.a); //name,arguments
+            }
+            delete list[o.k]; //key
         }
     };
 
@@ -786,6 +929,10 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
                 vframe: vf,
                 fcc: fcc //fireChildrenCreated
             });
+
+            id = G_GetById(id);
+            if (id) id.vframe = G_NULL;
+
         }
     };
 
@@ -815,6 +962,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         me.$s = 1; //signature
         me.$r = {}; //readyMap
 
+        me.$il = []; //invokeList
+
         me.pId = pId;
         Vframe_AddVframe(id, me);
     };
@@ -822,12 +971,6 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         /**
          * @lends Vframe
          */
-        /**
-         * 获取vframe节点
-         * @type {Vframe}
-         * @return {Vframe} vframe对象
-         */
-        root: Vframe_Root,
         /**
          * 获取所有的vframe对象
          * @return {Object}
@@ -867,7 +1010,7 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         /**
          * 加载对应的view
          * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
-         * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
+         * @param {Object|Null} [viewInitParams] 调用view的init方法时传递的参数
          */
         mountView: function(viewPath, viewInitParams /*,keepPreHTML*/ ) {
             var me = this;
@@ -875,43 +1018,66 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
                 po, sign, view;
             if (!me.$a && node) { //alter
                 me.$a = 1;
-                me.$t = G_HTML(node); //.replace(ScriptsReg, ''); template
+                me.$t = node.innerHTML; //.replace(ScriptsReg, ''); template
             }
-            //var useTurnaround=me.$vr&&me.useAnimUpdate();
             me.unmountView( /*keepPreHTML*/ );
             me.$d = 0; //destroyed 详见unmountView
             if (node && viewPath) {
                 me.path = viewPath;
                 po = G_ParseUri(viewPath);
+                view = po.path;
                 sign = ++me.$s;
-                G_Require(po.path, function(TView) {
+                G_Require(view, function(TView) {
                     if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
+                        if (!TView) {
+                            Magix_Cfg.error(Error('cannot load:' + view));
+                        }
+
                         View_Prepare(TView);
 
-                        var mxo = decodeURIComponent(node.getAttribute('mx-init'));
-                        if (mxo) {
-                            /*jshint evil: true*/
-                            mxo = G_ToTry(Function('return ' + mxo));
-                            G_Mix(viewInitParams, mxo);
+                        var pParams = po.params;
+
+                        var params = G_Mix(pParams, viewInitParams);
+
+
+                        var mxd = node.getAttribute('mx-init');
+                        if (mxd) {
+                            var parent = me.parent();
+                            parent = parent && parent.$v;
+                            var mxdo = {};
+                            var read = function(val) {
+                                var keys = val.split('.');
+                                var start = parent;
+                                while (keys.length && start) {
+                                    start = start[keys.shift()];
+                                }
+                                return start;
+                            };
+                            mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
+                                m = val.match(Vframe_DataParamsStrReg);
+                                if (m) {
+                                    val = m[2];
+                                } else if (Vframe_DataParamsNumReg.test(val)) {
+                                    val = parseFloat(val);
+                                } else {
+                                    val = read(val);
+                                }
+                                mxdo[name] = val;
+                            });
+                            G_Mix(params, mxdo);
                         }
 
                         view = new TView({
                             owner: me,
                             id: me.id
-                        }, G_Mix(po.params, viewInitParams));
-
+                        }, params);
                         me.$v = view;
-                        // view.on('rendered', function(e) {
-                        //     me.mountZone(e.id);
-                        // });
-                        // view.on('prerender', function(e) {
-                        //     if (!me.unmountZone(e.id, 0, 1)) {
-                        //         Vframe_NotifyAlter(me);
-                        //     }
-                        // });
+
                         View_DelegateEvents(view);
 
-                        //Vframe_RunInvokes(me);
+
+                        view.init(params);
+
                         view.render();
 
                         if (!view.tmpl && !view.$p) {
@@ -930,6 +1096,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             var view = me.$v,
                 node, reset;
 
+            me.$il = []; //invokeList 销毁当前view时，连同调用列表一起销毁
+
             if (view) {
                 if (!Vframe_GlobalAlter) {
                     reset = 1;
@@ -942,7 +1110,9 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
                 Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
                 me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
+
                 View_Oust(view);
+
                 node = G_GetById(me.id);
                 if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
                     G_HTML(node, me.$t);
@@ -961,11 +1131,11 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * 加载vframe
          * @param  {String} id             节点id
          * @param  {String} viewPath       view路径
-         * @param  {Object} viewInitParams 传递给view init方法的参数
+         * @param  {Object} [viewInitParams] 传递给view init方法的参数
          * @return {Vframe} vframe对象
          * @example
-         * //html
-         * &lt;div id="magix_vf_defer"&gt;&lt;/div&gt;
+         * // html
+         * // &lt;div id="magix_vf_defer"&gt;&lt;/div&gt;
          *
          *
          * //js
@@ -981,6 +1151,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             if (!vf) {
                 if (!G_Has(me.$c, id)) { //childrenMap,当前子vframe不包含这个id
 
+                    me.$cl = G_EMPTY; //childrenList 清空缓存的子列表
+
                     me.$cc++; //childrenCount ，增加子节点
                 }
                 me.$c[id] = id; //map
@@ -990,9 +1162,16 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             return vf;
         },
         /**
-         * 加载当前view下面的子view，因为view的持有对象是vframe，所以是加载vframes
+         * 加载某个区域下的view
          * @param {HTMLElement|String} zoneId 节点对象或id
-         * @param {Object} viewInitParams 传递给view init方法的参数
+         * @param {Object} [viewInitParams] 传递给view init方法的参数
+         * @example
+         * // html
+         * // &lt;div id="zone"&gt;
+         * //   &lt;div mx-view="path/to/v1"&gt;&lt;/div&gt;
+         * // &lt;/div&gt;
+         *
+         * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
             var me = this;
@@ -1000,7 +1179,7 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             var i, vf, id;
             zoneId = zoneId || me.id;
 
-            var vframes = $('#' + zoneId + ' [mx-view]');
+            var vframes = $(G_HashKey + zoneId + ' [mx-view]');
             /*
                 body(#mx-root)
                     div(mx-vframe=true,mx-view='xx')
@@ -1049,6 +1228,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
                 if (vf && G_Has(vf.$c, id)) { //childrenMap
                     delete vf.$c[id]; //childrenMap
 
+                    vf.$cl = G_EMPTY;
+
                     vf.$cc--; //cildrenCount
                     if (!inner) Vframe_NotifyCreated(vf); //移除后通知完成事件
                 }
@@ -1059,22 +1240,88 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * @param {HTMLElement|String} [zoneId]节点对象或id
          */
         unmountZone: function(zoneId /*,keepPreHTML*/ , inner) {
-                var me = this;
-                var p;
-                var cm = me.$c;
-                for (p in cm) {
-                    if (!zoneId || (p != zoneId && G_NodeIn(p, zoneId))) {
-                        me.unmountVframe(p /*,keepPreHTML,*/ , 1);
-                    }
+            var me = this;
+            var p;
+            var cm = me.$c;
+            for (p in cm) {
+                if (!zoneId || (p != zoneId && G_NodeIn(p, zoneId))) {
+                    me.unmountVframe(p /*,keepPreHTML,*/ , 1);
                 }
-                if (!inner) Vframe_NotifyCreated(me);
             }
-            /**
-             * 子孙view修改时触发
-             * @name Vframe#alter
-             * @event
-             * @param {Object} e
-             */
+            if (!inner) Vframe_NotifyCreated(me);
+        },
+        /**
+         * 获取父vframe
+         * @param  {Integer} [level] 向上查找层级，默认1,取当前vframe的父级
+         * @return {Vframe|undefined}
+         * @beta
+         * @module linkage
+         */
+        parent: function(level, vf) {
+            vf = this;
+            level = (level >>> 0) || 1;
+            while (vf && level--) {
+                vf = Vframe_Vframes[vf.pId];
+            }
+            return vf;
+        },
+        /**
+         * 获取当前vframe的所有子vframe的id。返回数组中，vframe在数组中的位置并不固定
+         * @return {Array[String]}
+         * @beta
+         * @module linkage
+         * @example
+         * var children = view.owner.children();
+         * console.log(children);
+         */
+        children: function(me) {
+            me = this;
+            return me.$cl || (me.$cl = G_Keys(me.$c));
+        },
+        /**
+         * 调用view的方法
+         * @param  {String} name 方法名
+         * @param  {Array} [args] 参数
+         * @return {Object}
+         * @beta
+         * @module linkage
+         * @example
+         * // html
+         * // &lt;div&gt; mx-view="path/to/v1" id="test"&gt;&lt;/div&gt;
+         * var vf = Magix.Vframe.get('test');
+         * vf.invoke('methodName',['args1','agrs2']);
+         */
+        invoke: function(name, args) {
+            var result;
+            var vf = this,
+                view, fn, o, list, key;
+            if ((view = vf.$v) && view.$p) { //view rendered
+                result = (fn = view[name]) && G_ToTry(fn, args, view);
+            } else {
+                list = vf.$il;
+                o = list[key = G_SPLITER + name];
+                if (o) {
+                    o.r = 1;
+                }
+                o = {
+                    n: name,
+                    a: args,
+                    k: key
+                };
+                list.push(o);
+                list[key] = o;
+            }
+            return result;
+        }
+
+
+
+        /**
+         * 子孙view修改时触发
+         * @name Vframe#alter
+         * @event
+         * @param {Object} e
+         */
 
         /**
          * 子孙view创建完成时触发
@@ -1102,9 +1349,15 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         d = e.data;
         G_ToTry(d.f, e, d.v);
     };
-    var Body_DOMEventLibBind = function(node, type, cb, remove, scope) {
-        $(node)[remove ? 'off' : Event_ON](type, scope, cb);
+
+    var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+        if (remove) {
+            $(node).off(type, selector, cb);
+        } else {
+            $(node).on(type, selector, scope, cb);
+        }
     };
+
     /*
     dom event处理思路
 
@@ -1185,16 +1438,17 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
                         fn = view[name];
                         if (fn) {
                             e.current = current;
+                            e.currentTarget = current;
                             e.params = match.p;
                             G_ToTry(fn, e, view);
-                            e.previous = current; //下一个处理函数可检测是否已经处理过
+                            //e.previous = current; //下一个处理函数可检测是否已经处理过
                         }
                     }
                 } else {
                     Magix_Cfg.error(Error('bad:' + info));
                 }
             }
-            if ((ignore = current.$) && ignore[eventType] /*|| e.isPropagationStopped()*/ ) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
+            if ((ignore = current.$) && ignore[eventType] || e.mxStop || e.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
                 break;
             } else {
                 arr.push(current);
@@ -1220,9 +1474,34 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
     };
 
 
-    var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
 
+    var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
     //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
+
+    var View_DestroyAllResources = function(me, lastly) {
+        var cache = me.$r, //reources
+            p, c;
+        for (p in cache) {
+            c = cache[p];
+            if (lastly || c.x) { //destroy
+                View_DestroyResource(cache, p, 1);
+            }
+        }
+    };
+    var View_DestroyResource = function(cache, key, callDestroy) {
+        var o = cache[key],
+            fn, res;
+        if (o) {
+            //var processed=false;
+            res = o.e; //entity
+            fn = res.destroy;
+            if (fn && callDestroy) {
+                G_ToTry(fn, G_EMPTY_ARRAY, res);
+            }
+            delete cache[key];
+        }
+        return res;
+    };
 
     var View_WrapRender = function(prop, fn, me) {
         fn = prop.render;
@@ -1231,6 +1510,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             if (me.$s > 0) { //signature
                 me.$s++;
                 me.fire('rendercall');
+
+                View_DestroyAllResources(me);
 
                 G_ToTry(fn, G_Slice.call(arguments), me);
             }
@@ -1246,7 +1527,7 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         p = events.length;
         while (p--) {
             e = events[p];
-            Body_DOMEventLibBind(e.h, e.t, Body_DOMGlobalProcessor, destroy, {
+            Body_DOMEventLibBind(e.e || G_HashKey + me.id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
                 v: me,
                 f: e.f
             });
@@ -1270,8 +1551,8 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
     // };
 
     var View_Globals = {
-        $win: G_WINDOW,
-        $doc: G_DOCUMENT
+        win: G_WINDOW,
+        doc: G_DOCUMENT
     };
     /**
      * 预处理view
@@ -1281,29 +1562,29 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
     var View_Prepare = function(oView) {
         if (!oView[G_SPLITER]) { //只处理一次
             oView[G_SPLITER] = 1;
-            //oView.extend = me.extend;
             var prop = oView[G_PROTOTYPE],
-                old, temp, name, evts, eventsObject = {},
+                oldFun, matches, selectorOrCallback, events, eventsObject = {},
                 eventsList = [],
-                node, p;
+                node, isSelector, p, item;
             for (p in prop) {
-                old = prop[p];
-                temp = p.match(View_EvtMethodReg);
-                if (temp) {
-                    name = temp[1];
-                    evts = temp[2];
-                    evts = evts.split(G_COMMA);
-                    while ((temp = evts.pop())) {
-                        node = View_Globals[name];
-                        if (node) {
+                oldFun = prop[p];
+                matches = p.match(View_EvtMethodReg);
+                if (matches) {
+                    isSelector = matches[1];
+                    selectorOrCallback = matches[2];
+                    events = matches[3].split(G_COMMA);
+                    while ((item = events.pop())) {
+                        if (isSelector) {
+                            node = View_Globals[selectorOrCallback];
                             eventsList.push({
-                                f: old,
-                                t: temp,
-                                h: node
+                                f: oldFun,
+                                s: node ? G_NULL : selectorOrCallback,
+                                n: item,
+                                e: node
                             });
                         } else {
-                            eventsObject[temp] = 1;
-                            prop[name + G_SPLITER + temp] = old;
+                            eventsObject[item] = 1;
+                            prop[selectorOrCallback + G_SPLITER + item] = oldFun;
                         }
                     }
                 }
@@ -1311,17 +1592,6 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             View_WrapRender(prop);
             prop.$eo = eventsObject;
             prop.$el = eventsList;
-
-            //css = prop.css;
-            /*
-                view上添加的style样式字符串，经magix处理后，会变成一个name映射对象，在页面上使用时，使用style.name来获取处理后的class名称
-             */
-            // if (css) {
-            //     prop.cssNames = View_Style_Map = {};
-            //     View_Style_Key = oView.$k;
-            //     oView.$c = css.replace(View_Style_Reg, View_Style_Processor);
-            // }
-
         }
     };
 
@@ -1330,7 +1600,10 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
             view.$s = 0;
             view.fire('destroy', 0, 1, 1);
 
+            View_DestroyAllResources(view, 1);
+
             View_DelegateEvents(view, 1);
+
         }
         view.$s--;
     };
@@ -1346,14 +1619,13 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
      * @property {String} id 当前view与页面vframe节点对应的id
      * @property {Vframe} owner 拥有当前view的vframe对象
      * @example
-     * 关于事件:
-     * 示例：
-     *   html写法：
+     * // 关于事件:
+     * // html写法：
      *
-     *   &lt;input type="button" mx-click="test({id:100,name:'xinglie'})" value="test" /&gt;
-     *   &lt;a href="http://etao.com" mx-click="test({com:'etao.com'})"&gt;http://etao.com&lt;/a&gt;
+     * //  &lt;input type="button" mx-click="test({id:100,name:'xinglie'})" value="test" /&gt;
+     * //  &lt;a href="http://etao.com" mx-click="test({com:'etao.com'})"&gt;http://etao.com&lt;/a&gt;
      *
-     *   view写法：
+     * // js写法：
      *
      *     'test&lt;click&gt;':function(e){
      *          e.preventDefault();
@@ -1378,7 +1650,10 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         G_Mix(me, ops);
 
 
+        me.$r = {};
+
         me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+
 
     };
     var ViewProto = View[G_PROTOTYPE];
@@ -1391,7 +1666,7 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * @param  {Object} props 扩展到原型上的方法
          * @example
          * define('app/tview',function(require){
-         *     var Magix=require('magix');
+         *     var Magix = require('magix');
          *     Magix.View.merge({
          *         ctor:function(){
          *             this.$attr='test';
@@ -1401,9 +1676,9 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          *         }
          *     });
          * });
-         * //加入Magix.start的exts中
+         * //加入Magix.config的exts中
          *
-         *  Magix.start({
+         *  Magix.config({
          *      //...
          *      exts:['app/tview']
          *
@@ -1417,16 +1692,45 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         /**
          * 继承
          * @param  {Object} [props] 原型链上的方法或属性对象
+         * @param {Function} [props.ctor] 类似constructor，但不是constructor，当我们继承时，你无需显示调用上一层级的ctor方法，magix会自动帮你调用
+         * @param {Array} [props.mixins] mix到当前原型链上的方法对象，该对象可以有一个ctor方法用于初始化
          * @param  {Object} [statics] 静态对象或方法
+         * @example
+         * var Magix = require('magix');
+         * var Sortable = {
+         *     ctor: function() {
+         *         console.log('sortable ctor');
+         *         //this==当前mix Sortable的view对象
+         *         this.on('destroy', function() {
+         *             console.log('dispose')
+         *         });
+         *     },
+         *     sort: function() {
+         *         console.log('sort');
+         *     }
+         * };
+         * module.exports = Magix.View.extend({
+         *     mixins: [Sortable],
+         *     ctor: function() {
+         *         console.log('view ctor');
+         *     },
+         *     render: function() {
+         *         this.sort();
+         *     }
+         * });
          */
         extend: function(props, statics) {
             var me = this;
             props = props || {};
             var ctor = props.ctor;
+
             var NView = function(a, b) {
                 me.call(this, a, b);
+
                 if (ctor) ctor.call(this, b);
+
             };
+
             NView.extend = me.extend;
             return G_Extend(NView, me, props, statics);
         }
@@ -1441,6 +1745,14 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          */
         render: G_NOOP,
 
+        /**
+         * 初始化调用的方法
+         * @beta
+         * @module viewInit
+         * @param {Object} extra 外部传递的数据对象
+         */
+        init: G_NOOP,
+
 
         // *
         //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
@@ -1451,13 +1763,13 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
         //  * @example
         //  * View.extend({
         //  *     'del&lt;click&gt;':function(e){
-        //  *         S.one('#'+e.currentId).remove();
+        //  *         S.one(G_HashKey+e.currentId).remove();
         //  *     },
         //  *     'addNode&lt;click&gt;':function(e){
         //  *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
         //  *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
         //  *         tmpl=this.wrapEvent(tmpl);
-        //  *         S.one('#'+e.currentId).append(tmpl);
+        //  *         S.one(G_HashKey+e.currentId).append(tmpl);
         //  *     }
         //  * });
         //  * //注意，只有动态添加的节点才需要处理
@@ -1482,16 +1794,20 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
          * 通知当前view结束html的更新
          * @param {String} [id] 哪块区域结束更新，默认整个view
          */
-        endUpdate: function(id, me) {
+        endUpdate: function(id, me, o, f) {
             me = this;
             if (me.$s > 0) {
                 // me.fire('rendered', {
                 //     id: id
                 // });
 
+                f = me.$p;
+
                 me.$p = 1;
 
-                me.owner.mountZone(id);
+                o = me.owner;
+                o.mountZone(id);
+                if (!f) Vframe_RunInvokes(o);
 
             }
         },
@@ -1518,6 +1834,56 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
                     if (fn) fn.apply(context || me, arguments);
                 }
             };
+        },
+
+
+        /**
+         * 让view帮你管理资源，强烈建议对组件等进行托管
+         * @param {String} key 资源标识key
+         * @param {Object} res 要托管的资源
+         * @param {Boolean} [destroyWhenCalleRender] 调用render方法时是否销毁托管的资源
+         * @return {Object} 返回托管的资源
+         * @beta
+         * @module resource
+         * @example
+         * View.extend({
+         *     render: function(){
+         *         var me = this;
+         *         var dropdown = new Dropdown();
+         *
+         *         me.capture('dropdown',dropdown,true);
+         *     },
+         *     getTest: function(){
+         *         var dd = me.capture('dropdown');
+         *         console.log(dd);
+         *     }
+         * });
+         */
+        capture: function(key, res, destroyWhenCallRender, cache, wrapObj) {
+            cache = this.$r;
+            if (res) {
+                View_DestroyResource(cache, key, 1);
+                wrapObj = {
+                    e: res,
+                    x: destroyWhenCallRender
+                };
+                cache[key] = wrapObj;
+            } else {
+                wrapObj = cache[key];
+                res = wrapObj && wrapObj.e || res;
+            }
+            return res;
+        },
+        /**
+         * 释放管理的资源
+         * @param  {String} key 托管时的key
+         * @param  {Boolean} [destroy] 是否销毁资源
+         * @return {Object} 返回托管的资源，无论是否销毁
+         * @beta
+         * @module resource
+         */
+        release: function(key, destroy) {
+            return View_DestroyResource(this.$r, key, destroy);
         },
 
 
@@ -1592,7 +1958,7 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
     G_Mix(G_NOOP[G_PROTOTYPE], Event);
     G_NOOP.extend = T_Extend;
     /**
-     * 组件基类
+     * mix Magix.Event的基类
      * @name Base
      * @constructor
      * @borrows Event.fire as #fire
@@ -1600,8 +1966,26 @@ define('atom/magix/index', ['atom/zepto/index'], function(require) {
      * @borrows Event.off as #off
      * @beta
      * @module base
+     * @example
+     * var T = Magix.Base.extend({
+     *     hi:function(){
+     *         this.fire('hi');
+     *     }
+     * });
+     * var t = new T();
+     * t.onhi=function(e){
+     *     console.log(e);
+     * };
+     * t.hi();
      */
     Magix.Base = G_NOOP;
+
+
+    define(MxGlobalView, function() {
+        return View.extend(
+
+        );
+    });
 
     return Magix;
 });

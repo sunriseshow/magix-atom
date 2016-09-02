@@ -1,6 +1,6 @@
 {
   "name": "mx-atom-magix",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "atom使用的magix精简版本",
   "main": "index.js",
   "repository": {
