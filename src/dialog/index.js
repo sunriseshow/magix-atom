@@ -49,20 +49,20 @@ module.exports = Magix.View.extend({
       animated: true,
       title: '',
       zIndex: 999
-    },options)
+    }, options)
 
     me.fixOptions(me.$options)
 
-    me.$maskVf = Mask.create()
-    me.$relatedElement = $('#'+me.id)
+    me.$maskVf = Mask.create().prop('vframe')
+    me.$relatedElement = $('#' + me.id)
 
     me.on('destroy', function() {
       // $('#aton-mask_' + me.id).remove()
-      me.$maskVf.destroy()
+      me.$maskVf.invoke('destroy')
     })
   },
   // 属性的特殊处理，比如width这种px的处理
-  fixOptions: function(options){
+  fixOptions: function(options) {
     if (options.width && /\d$/.test(options.width)) {
       options.width += 'px'
     }
@@ -72,43 +72,42 @@ module.exports = Magix.View.extend({
   },
   render: function() {
     var me = this
-    var html = $.tmpl(me.tmpl,me.$options)
-    me.setHTML(me.id,html)
-
+    var html = $.tmpl(me.tmpl, me.$options)
+    me.setHTML(me.id, html)
     // 一些特殊配置的处理
-    me.$relatedElement.css('zIndex',me.$options.zIndex)
+    me.$relatedElement.css('zIndex', me.$options.zIndex)
     if (me.$options.show) {
       me.open()
     }
     if (me.$options.maskClosable) {
-      me.$relatedElement.on('click',function(e){
-        if(!$.contains(me.$relatedElement[0],e.target)){
+      me.$relatedElement.on('click', function(e) {
+        if (!$.contains(me.$relatedElement[0], e.target)) {
           me.close()
-          me.$maskVf.hide()
+          me.$maskVf.invoke('hide')
         }
 
       })
     }
   },
-  open: function(){
+  open: function() {
     var me = this
-    me.$maskVf.show()
+    me.$maskVf.invoke('show')
     me.$relatedElement.addClass('atom-dialog-show')
     $('#' + this.id).trigger({
-      type:'open',
+      type: 'open',
       value: ''
     })
   },
-  close: function(){
+  close: function() {
     var me = this
-    me.$maskVf.hide()
+    me.$maskVf.invoke('hide')
     me.$relatedElement.removeClass('atom-dialog-show')
     $('#' + this.id).trigger({
-      type:'close',
+      type: 'close',
       value: ''
     })
   },
-  'close<click>': function(e){
+  'close<click>': function(e) {
     var me = this
     me.close()
   },
@@ -118,11 +117,12 @@ module.exports = Magix.View.extend({
 }, {
   create: function(options) {
     var id = 'atom' + Magix.guid('dlg_')
+    var rootId = Magix.config('rootId')
+    var root = Magix.Vframe.get(rootId)
+
     $('body').append('<div class="atom-dialog-wrap" id="' + id + '"/>')
-    return Magix.Vframe.root().mountVframe(id, '@moduleId', options).$v
-    // return new this({
-    //   // owner:,
-    //   id:
-    // },options)
+    root.mountVframe(id, '@moduleId', options)
+
+    return $('#' + id)
   }
 })

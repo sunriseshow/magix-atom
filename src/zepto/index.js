@@ -1007,10 +1007,6 @@ var Zepto = (function() {
 
 window.Zepto = Zepto
 window.$ === undefined && (window.$ = Zepto)
-define('$', function() {
-  return Zepto;
-});
-
 ;
 (function($) {
   var _zid = 1,
@@ -1736,6 +1732,4 @@ define('$', function() {
 
 })(Zepto)
 
-define('atom/zepto/index', function() {
-  return Zepto
-})
+module.exports = Zepto

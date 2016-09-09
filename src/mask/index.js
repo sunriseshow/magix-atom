@@ -26,28 +26,25 @@ module.exports = Magix.View.extend({
     me.$relatedElement = $('#atom-mask_' + id)
     me.endUpdate()
   },
-  show: function(){
+  show: function() {
     this.$relatedElement.addClass('atom-mask-show')
   },
-  hide: function(){
+  hide: function() {
     this.$relatedElement.removeClass('atom-mask-show')
   },
   destroy: function() {
     var me = this
-    // 会触发destroy事件
+      // 会触发destroy事件
     me.owner.unmountVframe()
   }
 }, {
   create: function(options) {
     var id = 'atom' + Magix.guid('dlg_');
+    var rootId = Magix.config('rootId');
+    var root = Magix.Vframe.get(rootId)
     $('body').append('<div style="display:none;" id="' + id + '"/>');
-    // 返回view对象
-    return Magix.Vframe.root().mountVframe(id, '@moduleId', {
-      show: true
-    }).$v
-    // return new this({
-    //   // owner:,
-    //   id:
-    // },options)
+    root.mountVframe(id, '@moduleId', options)
+      // 返回dom对象
+    return $('#' + id)
   }
 })

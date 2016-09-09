@@ -1,0 +1,39 @@
+{
+  "name": "magix-atom",
+  "description": "基于magix的无线端模块化解决方案。atom是原子的意思，顾名思义这些模块都是像原子那样尽量小尽量不可分割。",
+  "version": "0.0.1",
+  "homepage": "https://github.com/thx/magix-atom.git",
+  "scripts": {
+    "start": "mat dev"
+  },
+  "author": {
+    "name": "zhuyin",
+    "url": "http://zhuyin.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thx/magix-atom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thx/magix-atom.git"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/thx/magix-atom.git"
+    }
+  ],
+  "devDependencies": {
+    "magix-combine": "^1.1.7",
+    "mat": "0.1.10"
+  },
+  "keywords": [
+    "KISSY",
+    "magixjs",
+    "magix-atom"
+  ],
+  "engines": {
+    "node": "*"
+  },
+  "main": "index.html"
+}
