@@ -1,6 +1,6 @@
 {
   "name": "mx-atom-mask",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "遮罩",
   "main": "index.js",
   "repository": {
@@ -10,8 +10,8 @@
   "rules": ["mx-atom-zepto","mx-atom-magix"],
   "aim": "atom/mask",
   "dependencies": {
-    "mx-atom-zepto": "^0.0.1",
-    "mx-atom-magix": "^0.0.1"
+    "mx-atom-zepto": "0.0.2",
+    "mx-atom-magix": "0.0.4"
   },
   "keywords": [
     "magix",
