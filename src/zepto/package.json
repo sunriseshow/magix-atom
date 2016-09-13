@@ -1,6 +1,6 @@
 {
   "name": "mx-atom-zepto",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "atom使用的zepto版本,增加了模板扩展",
   "main": "index.js",
   "repository": {

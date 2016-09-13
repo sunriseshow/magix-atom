@@ -1698,9 +1698,42 @@ window.$ === undefined && (window.$ = Zepto)
     return '\\' + escapes[match];
   };
 
+  var escapeMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '`': '&#x60;'
+  };
+
+  $.keys = function(object){
+    var results = [];
+    for (var key in object) {
+      if (object.hasOwnProperty(key)) results.push(key);
+    }
+    return results
+  }
+
+  var createEscaper = function(map) {
+      var escaper = function(match) {
+        return map[match];
+      };
+      // Regexes for identifying a key that needs to be escaped.
+      var source = '(?:' + $.keys(map).join('|') + ')';
+      var testRegexp = RegExp(source);
+      var replaceRegexp = RegExp(source, 'g');
+      return function(string) {
+        string = string == null ? '' : '' + string;
+        return testRegexp.test(string) ? string.replace(replaceRegexp, escaper) : string;
+      };
+    };
+  $.escape = createEscaper(escapeMap);
+
   var tmpl = function(text, settings, oldSettings) {
     if (!settings && oldSettings) settings = oldSettings;
-    settings = _.defaults({}, settings, templateSettings);
+    settings = settings || {};
+    settings = $.extend(settings, templateSettings);
 
     // Combine delimiters into one regular expression via alternation.
     var matcher = RegExp([
@@ -1717,7 +1750,7 @@ window.$ === undefined && (window.$ = Zepto)
       index = offset + match.length;
 
       if (escape) {
-        source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
+        source += "'+\n((__t=(" + escape + "))==null?'':$.escape(__t))+\n'";
       } else if (interpolate) {
         source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
       } else if (evaluate) {
@@ -1738,14 +1771,14 @@ window.$ === undefined && (window.$ = Zepto)
 
     var render;
     try {
-      render = new Function(settings.variable || 'obj', '_', source);
+      render = new Function(settings.variable || 'obj', '$', source);
     } catch (e) {
       e.source = source;
       throw e;
     }
 
     var template = function(data) {
-      return render.call(this, data, _);
+      return render.call(this, data, $);
     };
 
     // Provide the compiled source as a convenience for precompilation.
@@ -1754,6 +1787,8 @@ window.$ === undefined && (window.$ = Zepto)
 
     return template;
   }
-  $.tmpl = tmpl;
+  $.tmpl = function(tpl,data){
+    return tmpl(tpl)(data)
+  }
 })(Zepto)
 module.exports = Zepto
