@@ -6,8 +6,11 @@
  * @param {string} [title] 标题默认为空 ''
  * @param {boolean} [show] 是否直接显示 false
  * @param {string} [view] 是否使用子view ''
+ * @param {string} [viewOptions] 子view的配置参数
  * @param {string} [content] 内容 ''
+ * @param {boolean} [preventScroll] 是否阻止背景滚动 true
  * @param {string} [closable] 是否显示右上角的关闭按钮 true
+ * @param {string} [closeDestroy] 关闭弹框是不是自动销毁 false
  * @param {string} [maskClosable] 是否点击蒙层关闭 true
  * @param {boolean} [animated] 是否启用动画 true
  * @param {string} [elCls] 根节点class名 ''
@@ -41,14 +44,17 @@ module.exports = Magix.View.extend({
       width: '80%',
       height: 'auto',
       closable: true,
+      closeDestroy: false,
       maskClosable: true,
       elCls: '',
       view: '',
+      viewOptions: {},
       content: '',
       show: false,
       animated: true,
       title: '',
-      zIndex: 999
+      zIndex: 999,
+      preventScroll: true
     }, options)
 
     me.fixOptions(me.$options)
@@ -57,7 +63,7 @@ module.exports = Magix.View.extend({
     me.$relatedElement = $('#' + me.id)
 
     me.on('destroy', function() {
-      // $('#aton-mask_' + me.id).remove()
+      $('#' + me.id).remove()
       me.$maskVf.invoke('destroy')
     })
   },
@@ -72,8 +78,17 @@ module.exports = Magix.View.extend({
   },
   render: function() {
     var me = this
+    me.$options.ownerid = me.id
+
     var html = $.tmpl(me.tmpl, me.$options)
     me.setHTML(me.id, html)
+
+    if (me.$options.view) {
+      var vf = Magix.Vframe.get('dialog_subview_of_' + me.id)
+      if (vf) {
+        vf.mountView(me.$options.view, me.$options.viewOptions)
+      }
+    }
     // 一些特殊配置的处理
     me.$relatedElement.css('zIndex', me.$options.zIndex)
     if (me.$options.show) {
@@ -93,6 +108,9 @@ module.exports = Magix.View.extend({
     var me = this
     me.$maskVf.invoke('show')
     me.$relatedElement.addClass('atom-dialog-show')
+    if (me.$options.preventScroll) {
+      $('html').addClass('atom-dialog-hide')
+    }
     $('#' + this.id).trigger({
       type: 'open',
       value: ''
@@ -100,8 +118,18 @@ module.exports = Magix.View.extend({
   },
   close: function() {
     var me = this
-    me.$maskVf.invoke('hide')
-    me.$relatedElement.removeClass('atom-dialog-show')
+
+    if (me.$options.preventScroll) {
+      $('html').removeClass('atom-dialog-hide')
+    }
+
+    if (me.$options.closeDestroy) {
+      me.destroy()
+    }else{
+      me.$maskVf.invoke('hide')
+      me.$relatedElement.removeClass('atom-dialog-show')
+    }
+
     $('#' + this.id).trigger({
       type: 'close',
       value: ''
