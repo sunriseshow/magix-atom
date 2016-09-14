@@ -12,7 +12,7 @@ module.exports = Magix.View.extend({
     me.$options = options
 
     me.on('destroy', function() {
-      $('#aton-mask_' + me.id).remove()
+      $('#' + me.id).remove()
     })
   },
   render: function() {
@@ -20,10 +20,16 @@ module.exports = Magix.View.extend({
     var elCls = me.$options.elCls || '' // 赋值给根节点的样式
     var show = me.$options.show || false // 是否初始化就展现
     var id = me.id
-    var showClass = show ? 'atom-mask-show' : ''
 
-    $('body').append('<div id="atom-mask_' + id + '" class="atom-mask ' + showClass + elCls + '" />')
-    me.$relatedElement = $('#atom-mask_' + id)
+    me.$relatedElement = $('#' + id)
+    if (show) {
+      me.$relatedElement.addClass('atom-mask-show')
+    }
+
+    if (elCls) {
+      me.$relatedElement.addClass('atom-mask-show')
+    }
+
     me.endUpdate()
   },
   show: function() {
@@ -42,7 +48,7 @@ module.exports = Magix.View.extend({
     var id = 'atom' + Magix.guid('dlg_');
     var rootId = Magix.config('rootId');
     var root = Magix.Vframe.get(rootId)
-    $('body').append('<div style="display:none;" id="' + id + '"/>');
+    $('body').append('<div class="atom-mask" id="' + id + '"/>');
     root.mountVframe(id, '@moduleId', options)
       // 返回dom对象
     return $('#' + id)
