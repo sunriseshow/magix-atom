@@ -12,7 +12,7 @@
   "dependencies": {
     "mx-atom-zepto": "0.0.3",
     "mx-atom-magix": "0.0.4",
-    "mx-atom-mask": "0.0.2"
+    "mx-atom-mask": "0.0.3"
   },
   "keywords": [
     "magix",
