@@ -1,6 +1,6 @@
 {
   "name": "mx-atom-dialog",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "对话框",
   "main": "index.js",
   "repository": {
@@ -10,7 +10,7 @@
   "aim": "atom/dialog",
   "rules": ["^mx-"],
   "dependencies": {
-    "mx-atom-zepto": "0.0.2",
+    "mx-atom-zepto": "0.0.3",
     "mx-atom-magix": "0.0.4",
     "mx-atom-mask": "0.0.2"
   },
