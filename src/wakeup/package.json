@@ -1,13 +1,13 @@
 {
-  "name": "mx-atom-callapp",
-  "version": "0.0.2",
-  "description": "atom使用的zepto版本,增加了模板扩展",
+  "name": "mx-atom-wakeup",
+  "version": "0.0.1",
+  "description": "唤醒手淘插件",
   "main": "index.js",
   "repository": {
     "type": "git",
     "url": ""
   },
-  "aim": "atom/callapp",
+  "aim": "atom/wakeup",
   "author": "<huanci.lb@alibaba-inc.com>",
   "license": "MIT",
   "bugs": {
