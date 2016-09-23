@@ -1,0 +1,17 @@
+{
+  "name": "mx-atom-callapp",
+  "version": "0.0.1",
+  "description": "atom使用的zepto版本,增加了模板扩展",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "aim": "atom/callapp",
+  "author": "<huanci.lb@alibaba-inc.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  }
+}
+
