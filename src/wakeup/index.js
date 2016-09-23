@@ -1,5 +1,5 @@
-var Callapp = (function() {
-    function url2obj(url) {
+var Wakeup = (function() {
+   function url2obj(url) {
         var re = {},
             unUrl,
             params;
@@ -65,7 +65,8 @@ var Callapp = (function() {
 
     function obj2url(obj) {
         var re = [],
-            query = [];
+            query = [],
+            query_added = false;
 
         if (obj.protocol !== undefined) {
             re.push(obj.protocol + '//');
@@ -75,8 +76,11 @@ var Callapp = (function() {
         }
 
         if (obj.params !== undefined) {
-            re.push('?');
             for (var key in obj.params) {
+                if (!query_added) {
+                    re.push('?');
+                    query_added = true;
+                }
                 if (obj.params.hasOwnProperty(key)) {
                     if (obj.params[key] !== undefined) {
                         query.push([key, '=', encodeURIComponent(obj.params[key])].join(''));
@@ -98,6 +102,10 @@ var Callapp = (function() {
             h5_uid = document.cookie.match(/(?:^|\s)cna=([^;]+)(?:;|$)/),
             currentUrl = url2obj(location.href),
             params = {};
+
+        if (url.params === undefined) {
+            url.params = {};
+        }
 
         if (currentUrl.params) {
             //透传参数
@@ -132,17 +140,15 @@ var Callapp = (function() {
 
     function useAnchorLink(url) {
         var a = document.createElement('a'),
-            e = document.createEvent('HTMLEvents');
+            e = new MouseEvent('click');
 
         a.setAttribute('href', url);
         a.style.display = 'none';
         document.body.appendChild(a);
-
-        e.initEvent('click', false, false);
         a.dispatchEvent(e);
     }
 
-    function callInIframe(url) {
+    function callInIframe(url, loadCB) {
         var iframe = document.createElement('iframe');
 
         iframe.id = 'callapp_iframe_' + Date.now();
@@ -157,9 +163,11 @@ var Callapp = (function() {
         if (document.readyState == "complete" || document.readyState == "loaded") {
             add();
         } else {
-            window.addEventListener("load", function() {
-                add();
-            });
+            if (loadCB !== undefined) {
+                loadCB(add);
+            } else {
+                window.addEventListener("load", add);
+            }
         }
     }
 
@@ -199,18 +207,16 @@ var Callapp = (function() {
             url.protocol = options.scheme || 'taobao:';
             useAnchorLink(obj2url(url));
         } else if (AndroidBCFix && options.scheme === undefined) {
-            callInIframe(tbopen + encodeURIComponent(obj2url(url)));
+            callInIframe(tbopen + encodeURIComponent(obj2url(url)), options.loadCB);
         } else {
             /**
              * 在如网易的webview里，iframe的生成需要等待DOM的load事件。其表现和Safari中的非常类似，怀疑是WebKitWebView。
              */
             url.protocol = options.scheme || 'taobao:';
-            callInIframe(obj2url(url));
+            callInIframe(obj2url(url), options.loadCB);
         }
     }
 
-   // window.lib = window.lib || {};
-   // window.lib.callapp = window.lib.callapp || {};
-   // window.lib.callapp.gotoPage = wakeup;
+    return wakeup; 
 })();
-module.exports = Callapp
+module.exports = Wakeup
