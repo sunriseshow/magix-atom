@@ -11,12 +11,44 @@
         <link rel="stylesheet" type="text/css" href="//g.alicdn.com/thx/cube/1.2.1/neat-min.css">
         <script src="http://g.tbcdn.cn/mtb/??lib-mtop/2.0.13/mtop.js,lib-login/1.4.4/login.js"></script>
         <script type="text/javascript" src="//a.alipayobjects.com/seajs/seajs/2.1.1/sea.js"></script>
+        <style type="text/css">
+            .mn_scroll{
+                width: 100%;
+                position: relative;
+                height: 25px;
+                overflow: hidden;
+            }
+            .mn_scroll ul{
+                position: absolute;
+                left: 0;
+                top: 0;
+                white-space: nowrap;
+            }
+            .mn_scroll li{
+                display: inline-block;
+                margin: 0 20px;
+                background: #ff0;
+            }
+        </style>
     </head>
     <body>
         <div mx-click="showDialog()">点我弹框</div>
         <!-- <div mx-view="src/dialog/index" mx-init="{show:true,contents:'我是测试情况'}" class="turntable">
             <div class="loading"></div>
         </div> -->
+        <div id="mn_scroll" class="mn_scroll">
+            <ul>
+                <li>中年女装夏装连衣裙</li>
+                <li>大码女装夏装连衣裙</li>
+                <li>儿童女装夏装连衣裙</li>
+                <li>胖人女装夏装连衣裙</li>
+                <li>女装夏装套装连衣裙</li>
+                <li>女大童连衣裙</li>
+                <li>kenzot恤</li>
+                <li>火锅桌椅</li>
+            </ul>
+        </div>
+        <div mx-view="src/slideMenu/index" data-option='{"target":"#mn_scroll"}'></div>
     <script src="./index.js"></script>
     </body>
 </html>

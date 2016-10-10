@@ -1,0 +1,26 @@
+{
+  "name": "mx-atom-slidemenu",
+  "version": "0.0.1",
+  "description": "滑动菜单",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "rules": ["mx-atom-zepto","mx-atom-magix"],
+  "aim": "atom/slidemenu",
+  "dependencies": {
+    "mx-atom-zepto": "0.0.3",
+    "mx-atom-magix": "0.0.4"
+  },
+  "keywords": [
+    "magix",
+    "sync",
+    "local"
+  ],
+  "author": "<donhgming.shb@alibaba-inc.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  }
+}
