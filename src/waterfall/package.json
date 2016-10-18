@@ -1,0 +1,17 @@
+{
+  "name": "mx-atom-waterfall",
+  "version": "0.0.1",
+  "description": "瀑布流",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "aim": "atom/waterfall",
+  "author": "<donhgming.shb@alibaba-inc.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": ""
+  }
+}
+
