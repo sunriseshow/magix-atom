@@ -5,15 +5,19 @@ var map_css = {
 	transition: 'transition',
 	transform: 'transform'
 }
-if((!"transform" in document.documentElement.style) && ("webkitTransform" in document.documentElement.style)){
+if((!("transform" in document.documentElement.style)) && ("webkitTransform" in document.documentElement.style)){
 	map_css.transition="webkitTransition";
 	map_css.transform="webkitTransform";
+}
+if((!("transform" in document.documentElement.style)) && ("-webkit-transform" in document.documentElement.style)){
+	map_css.transition="-webkit-transition";
+	map_css.transform="-webkit-transform";
 }
 
 function getXY(dom){
 	var xy = {x:0,y:0};
 	if(dom = $(dom)){
-		var v = dom.css("transform") || dom.css("webkitTransform") || "";
+		var v = dom.css("transform") || dom.css("webkitTransform") || dom.css("-webkit-transform") || "";
 		if(v.indexOf("translate3d") != -1){
 			v=v.replace(/.*?translate3d\((.*)\)/,"$1").split(",");
 			xy.x=parseFloat(v[0]);
@@ -61,6 +65,8 @@ module.exports = Magix.View.extend({
 		// me.slideMenu = new slideMenu(op);
 		me.config = $.extend({
 			// target:,
+			beginX: 0, //向右方的偏移量
+			beginY: 0, //向下方的偏移量
 			maxOffSetDis: 0.4,
 			lockX: false,
 			lockY: true
@@ -87,6 +93,9 @@ module.exports = Magix.View.extend({
             initOffSet();
 			me.bindEvent();
         });
+        if(me.config.beginX || me.config.beginY){
+        	me.moveTo(-me.config.beginX, -me.config.beginY);
+        }
 		// set transition
 		setTransition(me.$ul,200);
 		me.bindEvent();
@@ -102,6 +111,7 @@ module.exports = Magix.View.extend({
 		}
 		var startXY,clientStartX,clientStartY;
 		function doTouchStart(e){
+			me.needStop = false;
 			startXY = getXY(me.$ul);
 			clientStartX = getPageX(e);
 			clientStartY = getPageY(e);
@@ -109,7 +119,9 @@ module.exports = Magix.View.extend({
 		function doTouchMove(e){
 			e.preventDefault();
 			e.stopPropagation();
+			me.needStop = true;
 			var config = me.config;
+			// alert('move');
 			if(startXY != void 0 && clientStartX != void 0 && clientStartY != void 0){
 				var changeX = getPageX(e) - clientStartX;
 				var changeY = getPageY(e) - clientStartY;
@@ -156,7 +168,6 @@ module.exports = Magix.View.extend({
 					}
 					setXY(me.$ul,curX,curY);
 				}
-
 			}
 		}
 		function doTouchEnd(e){
@@ -166,17 +177,21 @@ module.exports = Magix.View.extend({
 			if(config.lockY&&!config.lockX){
 				// 只能横向
 				if(curXY.x > 0){
+					me.$parent.trigger('minX');
 					setXY(me.$ul, 0, startXY.y);
 				}
 				if(curXY.x < -me.$ulOffSet.width + me.$parentOffSet.width){
+					me.$parent.trigger('maxX');
 					setXY(me.$ul, -me.$ulOffSet.width + me.$parentOffSet.width, startXY.y);
 				}
 			}else if(config.lockX&&!config.lockY){
 				// 只能纵向
 				if(curXY.y > 0){
+					me.$parent.trigger('minY');
 					setXY(me.$ul, startXY.x, 0);
 				}
 				if(curXY.y < -me.$ulOffSet.height + me.$parentOffSet.height){
+					me.$parent.trigger('maxY');
 					setXY(me.$ul, startXY.x, -me.$ulOffSet.height + me.$parentOffSet.height);
 				}
 			}else if(!config.lockX&&!config.lockY){
@@ -184,15 +199,19 @@ module.exports = Magix.View.extend({
 				curX = startXY.x;
 				curY = startXY.y;
 				if(curXY.x > 0){
+					me.$parent.trigger('minX');
 					curX = 0;
 				}
 				if(curXY.x < -me.$ulOffSet.width + me.$parentOffSet.width){
+					me.$parent.trigger('maxX');
 					curX = -me.$ulOffSet.width + me.$parentOffSet.width;
 				}
 				if(curXY.y > 0){
+					me.$parent.trigger('minY');
 					curY = 0;
 				}
 				if(curXY.y < -me.$ulOffSet.height + me.$parentOffSet.height){
+					me.$parent.trigger('maxY');
 					curY = -me.$ulOffSet.height + me.$parentOffSet.height;
 				}
 				setXY(me.$ul, curX, curY);
@@ -200,6 +219,10 @@ module.exports = Magix.View.extend({
 			startXY = void 0;
 			clientStartX = void 0;
 			clientStartY = void 0;
+			if(me.needStop){
+				e.preventDefault();
+				e.stopPropagation();
+			}
 		}
 		// off
 		me.$ul.off('touchstart',doTouchStart);
@@ -211,5 +234,23 @@ module.exports = Magix.View.extend({
 		me.$ul.on('touchmove',doTouchMove);
 		me.$ul.on('touchend',doTouchEnd);
 		me.$ul.on('touchcancel',doTouchEnd);
+	},
+	moveTo: function(x,y){
+		var me = this;
+		x = x || 0;
+		y = y || 0;
+		if(x > 0){
+			x = 0;
+		}
+		if(x < -me.$ulOffSet.width + me.$parentOffSet.width){
+			x = -me.$ulOffSet.width + me.$parentOffSet.width;
+		}
+		if(y > 0){
+			y = 0;
+		}
+		if(y < -me.$ulOffSet.height + me.$parentOffSet.height){
+			y = -me.$ulOffSet.height + me.$parentOffSet.height;
+		}
+		setXY(me.$ul, x, y);
 	}
 });

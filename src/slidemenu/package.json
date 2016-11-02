@@ -1,6 +1,6 @@
 {
   "name": "mx-atom-slidemenu",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "滑动菜单",
   "main": "index.js",
   "repository": {
