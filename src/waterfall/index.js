@@ -2,12 +2,13 @@ var Magix = require('atom/magix/index')
 Magix.applyStyle('global@index.less')
 
 var $body = $('body');
-function getHtml(num, end, error){
+
+function getHtml(num, end, error, loading){
     var htmlArr = ['<div class="waterfall-list">'];
     for(var i = 0;i < num;i++){
         htmlArr.push('<div class="waterfall-column"></div>');
     }
-    htmlArr.push('<div class="waterfall-footer" style="clear:both;"><div class="waterfall-status-done js-hide">' + end + '</div><div class="waterfall-status-loading js-hide"></div><div class="waterfall-status-error js-hide">' + error + '</div></div>');
+    htmlArr.push('<div class="waterfall-footer" style="clear:both;"><div class="waterfall-status-done js-hide">' + end + '</div><div class="waterfall-status-loading">' + loading + '</div><div class="waterfall-status-error js-hide">' + error + '</div></div>');
     return htmlArr.join('');
 }
 module.exports = Magix.View.extend({
@@ -20,7 +21,8 @@ module.exports = Magix.View.extend({
             distance : 200,
             waterfallCol: 2,
             endHtml: '亲，没有更多了',
-            errorHtml: '加载失败'
+            errorHtml: '系统繁忙，请刷新看看~',
+            loadingHtml: '<p><span class="loading-icon"></span><span class="loading-text">加载中</span></p>'
         },op);
     },
     render: function(){
@@ -36,9 +38,10 @@ module.exports = Magix.View.extend({
         me.screenHeight = window.screen.height;
         me.curIndex = 0;
         me.needWaterFall = false;
-        $(getHtml(me.waterfallCol,me.config.endHtml,me.config.errorHtml)).appendTo(me.target);
+        $(getHtml(me.waterfallCol,me.config.endHtml,me.config.errorHtml,me.config.loadingHtml)).appendTo(me.target);
         me.loading = me.target.find('.waterfall-status-loading');
         me.end = me.target.find('.waterfall-status-done');
+        me.error = me.target.find('.waterfall-status-error');
         me.$waterfallList = me.target.find('.waterfall-column');
         me.waterfallListWidth = me.target.offset().width/me.waterfallCol;
         me.$waterfallList.css('width',me.waterfallListWidth);
@@ -51,6 +54,7 @@ module.exports = Magix.View.extend({
                 // 传一个回调出去 让别人调用
                 me.load();
                 me.end.addClass('js-hide');
+                me.error.addClass('js-hide');
                 me.loading.removeClass('js-hide');
             }
         }
@@ -65,7 +69,17 @@ module.exports = Magix.View.extend({
         me.needWaterFall = false;
         setTimeout(function(){
             me.loading.addClass('js-hide');
+            me.error.addClass('js-hide');
             me.end.removeClass('js-hide');
+        },0)
+    },
+    errWaterFall : function(){
+        var me = this;
+        me.needWaterFall = false;
+        setTimeout(function(){
+            me.loading.addClass('js-hide');
+            me.end.addClass('js-hide');
+            me.error.removeClass('js-hide');
         },0)
     },
     load: function(){
@@ -104,15 +118,26 @@ module.exports = Magix.View.extend({
     getWidth: function(){
         return this.waterfallListWidth;
     },
-    clear: function(){
+    restart: function(){
         this.$waterfallList.html('');
         this.page = 1;
         this.hasLoaded = true;
         this.curIndex = 0;
         this.needWaterFall = false;
         this.load();
+        this.loading.removeClass('js-hide');
+        this.end.addClass('js-hide');
+        this.error.addClass('js-hide');
+    },
+    clear: function(){
+        this.$waterfallList.html('');
+        this.page = 1;
+        this.hasLoaded = true;
+        this.curIndex = 0;
+        this.needWaterFall = false;
         this.loading.addClass('js-hide');
         this.end.addClass('js-hide');
+        this.error.addClass('js-hide');
     }
 }, {
   create: function(options) {
